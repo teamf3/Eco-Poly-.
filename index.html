@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Poly Piano Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #bae6fd;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 4px;
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 500px;
+        }
+        .tile-0 { grid-area: 5 / 5; }
+        .tile-1 { grid-area: 5 / 4; }
+        .tile-2 { grid-area: 5 / 3; }
+        .tile-3 { grid-area: 5 / 2; }
+        .tile-4 { grid-area: 5 / 1; }
+        .tile-5 { grid-area: 4 / 1; }
+        .tile-6 { grid-area: 3 / 1; }
+        .tile-7 { grid-area: 2 / 1; }
+        .tile-8 { grid-area: 1 / 1; }
+        .tile-9 { grid-area: 1 / 2; }
+        .tile-10 { grid-area: 1 / 3; }
+        .tile-11 { grid-area: 1 / 4; }
+        .tile-12 { grid-area: 1 / 5; }
+        .tile-13 { grid-area: 2 / 5; }
+        .tile-14 { grid-area: 3 / 5; }
+        .tile-15 { grid-area: 4 / 5; }
+
+        .token {
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .active-turn {
+            border-color: #fb923c !important;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(251, 146, 60, 0.4);
+        }
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .animate-bounce-subtle {
+            animation: bounce-subtle 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 flex flex-col items-center justify-start sm:justify-center">
+
+    <!-- MÀN HÌNH BẮT ĐẦU -->
+    <div id="start-screen" class="fixed inset-0 z-50 bg-sky-100 flex items-center justify-center p-6">
+        <div class="bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row max-w-4xl w-full border-4 sm:border-8 border-white">
+            <div class="md:w-1/2 p-8 sm:p-12 bg-sky-50 flex flex-col justify-center">
+                <h1 class="text-4xl sm:text-6xl font-black text-sky-500 italic mb-2">ECO<span class="text-emerald-500">POLY</span></h1>
+                <p class="text-sky-800 font-bold mb-6 sm:mb-8 uppercase text-sm sm:text-base">Nhạc Piano Hoạt Hình Cực Vui!</p>
+                <button onclick="startGame()" class="w-full py-4 sm:py-5 bg-orange-400 text-white rounded-2xl font-black text-lg sm:text-xl shadow-[0_6px_0_0_#c2410c] hover:translate-y-1 hover:shadow-none transition-all mb-4">CHƠI NGAY</button>
+                <p class="text-center text-slate-400 text-xs font-bold uppercase tracking-widest">Âm thanh nhí nhảnh, vui nhộn</p>
+            </div>
+            <div class="hidden md:flex md:w-1/2 bg-emerald-400 p-12 flex-col items-center justify-center text-white">
+                <div class="text-8xl mb-4">🎹</div>
+                <h3 class="text-2xl font-black uppercase text-center">Âm nhạc & Môi trường</h3>
+                <p class="text-center font-bold opacity-90 mt-2">Đầu tư xanh - Nhận âm thanh vui vẻ!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- GIAO DIỆN CHÍNH -->
+    <div id="game-ui" class="w-full max-w-lg hidden flex flex-col items-center pt-2 pb-8">
+        <!-- Players HUD -->
+        <div class="w-full flex justify-between gap-2 mb-4">
+            <div id="p0-card" class="flex-1 bg-white p-2 sm:p-4 rounded-2xl sm:rounded-[2rem] border-2 sm:border-4 border-white shadow-md flex items-center gap-2 sm:gap-4 transition-all active-turn">
+                <div class="bg-blue-400 w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl border-2 border-white shadow-sm">🎒</div>
+                <div>
+                    <div class="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase">Bạn Xanh</div>
+                    <div class="flex flex-col sm:flex-row sm:gap-2 font-black text-xs sm:text-base">
+                        <span class="text-blue-500" id="p0-cash">$1500</span>
+                    </div>
+                </div>
+            </div>
+            <div id="p1-card" class="flex-1 bg-white p-2 sm:p-4 rounded-2xl sm:rounded-[2rem] border-2 sm:border-4 border-white shadow-md flex items-center gap-2 sm:gap-4 transition-all">
+                <div class="bg-pink-400 w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl border-2 border-white shadow-sm">📸</div>
+                <div>
+                    <div class="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase">Bạn Hồng</div>
+                    <div class="flex flex-col sm:flex-row sm:gap-2 font-black text-xs sm:text-base">
+                        <span class="text-blue-500" id="p1-cash">$1500</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bàn cờ -->
+        <div class="relative w-full bg-white p-2 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-[6px] sm:border-[10px] border-white board-grid" id="board">
+            <div class="col-start-2 col-end-5 row-start-2 row-end-5 bg-sky-50 rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center p-2 border-2 border-sky-100 shadow-inner">
+                <div id="dice-display" class="text-4xl sm:text-6xl mb-2">🎲</div>
+                <button id="roll-btn" onclick="handleRoll()" class="px-4 py-2 sm:px-8 sm:py-3 bg-orange-400 text-white rounded-xl sm:rounded-[1.5rem] font-black text-xs sm:text-lg shadow-md active:translate-y-1 transition-all uppercase">LẮC XÚC XẮC!</button>
+                <div id="turn-indicator" class="mt-2 font-black text-sky-600 uppercase tracking-tighter sm:tracking-widest text-[8px] sm:text-xs italic animate-pulse text-center">Đang tải...</div>
+            </div>
+        </div>
+
+        <!-- Tin nhắn -->
+        <div class="mt-4 bg-white px-6 py-3 rounded-2xl border-4 border-white shadow-lg w-full text-center">
+            <p id="game-message" class="text-slate-700 font-bold italic text-sm sm:text-base">"Chào mừng thám hiểm nhí!"</p>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="action-modal" class="fixed inset-0 z-[100] bg-sky-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden border-4 sm:border-8 border-white"></div>
+    </div>
+
+    <!-- ÂM THANH PIANO HOẠT HÌNH -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let bgmInterval;
+
+        // Tạo tiếng nốt Piano (Triangle wave cho âm thanh mềm mại hơn)
+        function playPianoNote(freq, start, duration, vol = 0.08) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.frequency.setValueAtTime(freq, start);
+            
+            // Envelope cho tiếng Piano
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+            
+            osc.start(start);
+            osc.stop(start + duration);
+        }
+
+        function playSound(type) {
+            const now = audioCtx.currentTime;
+            if (type === 'dice') {
+                playPianoNote(200, now, 0.1);
+            } else if (type === 'move') {
+                playPianoNote(400 + (Math.random() * 200), now, 0.15, 0.05);
+            } else if (type === 'buy') {
+                // Hợp âm Đô Trưởng vui vẻ
+                playPianoNote(523.25, now, 0.5); // C5
+                playPianoNote(659.25, now + 0.1, 0.5); // E5
+                playPianoNote(783.99, now + 0.2, 0.5); // G5
+            } else if (type === 'correct') {
+                playPianoNote(880, now, 0.2); // A5
+                playPianoNote(1046, now + 0.1, 0.3); // C6
+            } else if (type === 'wrong') {
+                playPianoNote(196, now, 0.3); // G3
+                playPianoNote(146, now + 0.2, 0.4); // D3
+            }
+        }
+
+        // Nhạc nền Piano ngẫu nhiên vui nhộn
+        function startBGM() {
+            if (bgmInterval) return;
+
+            const scale = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5, D5, E5, G5, A5
+            
+            bgmInterval = setInterval(() => {
+                const now = audioCtx.currentTime;
+                // Chơi ngẫu nhiên 2 nốt nảy
+                playPianoNote(scale[Math.floor(Math.random() * scale.length)], now, 0.4, 0.02);
+                if(Math.random() > 0.5) {
+                    playPianoNote(scale[Math.floor(Math.random() * scale.length)], now + 0.2, 0.3, 0.015);
+                }
+            }, 800);
+        }
+    </script>
+
+    <script>
+        const TILES = [
+            { id: 0, name: "START", type: "START", color: "bg-red-400", emoji: "🏁" },
+            { id: 1, name: "Vịnh Hạ Long", type: "PROPERTY", price: 200, rent: 50, color: "bg-cyan-400", emoji: "⛵" },
+            { id: 2, name: "AI", type: "QUIZ", color: "bg-purple-400", emoji: "🤖" },
+            { id: 3, name: "Chợ Bến Thành", type: "PROPERTY", price: 150, rent: 30, color: "bg-orange-400", emoji: "🛍️" },
+            { id: 4, name: "NGỦ TRƯA", type: "JAIL", color: "bg-slate-600", emoji: "💤" },
+            { id: 5, name: "Hồ Gươm", type: "PROPERTY", price: 250, rent: 60, color: "bg-green-400", emoji: "🌳" },
+            { id: 6, name: "GIÓ", type: "UTILITY", price: 150, rent: 40, color: "bg-sky-300", emoji: "🌬️" },
+            { id: 7, name: "Phố Cổ Hội An", type: "PROPERTY", price: 200, rent: 50, color: "bg-amber-400", emoji: "🏮" },
+            { id: 8, name: "CÔNG VIÊN", type: "FREE", color: "bg-lime-400", emoji: "🎡" },
+            { id: 9, name: "Đảo Ngọc Phú Quốc", type: "PROPERTY", price: 400, rent: 100, color: "bg-blue-400", emoji: "🏝️" },
+            { id: 10, name: "AI", type: "QUIZ", color: "bg-purple-400", emoji: "🤖" },
+            { id: 11, name: "Đỉnh Fansipan", type: "PROPERTY", price: 300, rent: 80, color: "bg-emerald-400", emoji: "☁️" },
+            { id: 12, name: "PHẠT", type: "GO_JAIL", color: "bg-rose-500", emoji: "🚫" },
+            { id: 13, name: "Vườn Cúc Phương", type: "PROPERTY", price: 180, rent: 40, color: "bg-teal-400", emoji: "🐒" },
+            { id: 14, name: "THUẾ", type: "TAX", penalty: 200, color: "bg-gray-400", emoji: "📉" },
+            { id: 15, name: "Kinh Thành Huế", type: "PROPERTY", price: 220, rent: 55, color: "bg-violet-400", emoji: "🏰" }
+        ];
+
+        let state = {
+            turn: 0,
+            players: [
+                { cash: 1500, pos: 0, owned: [], color: 'bg-blue-400', icon: '🎒', name: 'Bạn Xanh' },
+                { cash: 1500, pos: 0, owned: [], color: 'bg-pink-400', icon: '📸', name: 'Bạn Hồng' }
+            ],
+            isRolling: false
+        };
+
+        function initBoard() {
+            const board = document.getElementById('board');
+            TILES.forEach((tile, i) => {
+                const div = document.createElement('div');
+                div.className = `tile-${i} bg-white border border-slate-100 rounded-lg sm:rounded-xl flex flex-col relative overflow-hidden shadow-sm`;
+                div.innerHTML = `
+                    <div class="${tile.color} h-1/4 w-full flex items-center justify-center text-[6px] sm:text-[8px] font-black text-white">
+                        ${tile.price ? '$'+tile.price : ''}
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center p-0.5">
+                        <span class="text-xs sm:text-xl">${tile.emoji}</span>
+                        <span class="text-[5px] sm:text-[7px] font-black uppercase text-slate-400 text-center leading-none">${tile.name}</span>
+                    </div>
+                    <div id="owner-mark-${i}" class="absolute top-0.5 right-0.5 w-1.5 h-1.5 sm:w-3 sm:h-3 rounded-full hidden border border-white"></div>
+                    <div id="tokens-on-${i}" class="absolute inset-0 flex items-center justify-center gap-0.5"></div>
+                `;
+                board.appendChild(div);
+            });
+            updateTokens();
+            updateHUD();
+        }
+
+        function startGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            startBGM(); 
+            playSound('buy');
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            initBoard();
+        }
+
+        function updateTokens() {
+            for(let i=0; i<16; i++) {
+                const container = document.getElementById(`tokens-on-${i}`);
+                if(container) container.innerHTML = '';
+            }
+            state.players.forEach((p, idx) => {
+                const token = document.createElement('div');
+                token.className = `${p.color} w-5 h-5 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border-2 sm:border-4 border-white shadow-md flex items-center justify-center text-[10px] sm:text-sm animate-bounce-subtle token`;
+                token.innerText = p.icon;
+                const target = document.getElementById(`tokens-on-${p.pos}`);
+                if(target) target.appendChild(token);
+            });
+        }
+
+        function updateHUD() {
+            state.players.forEach((p, i) => {
+                document.getElementById(`p${i}-cash`).innerText = `$${p.cash}`;
+                document.getElementById(`p${i}-card`).classList.toggle('active-turn', state.turn === i);
+            });
+            document.getElementById('turn-indicator').innerText = `Lượt ${state.players[state.turn].name}`;
+        }
+
+        function setMessage(msg) {
+            document.getElementById('game-message').innerText = `"${msg}"`;
+        }
+
+        async function handleRoll() {
+            if (state.isRolling) return;
+            state.isRolling = true;
+            document.getElementById('roll-btn').disabled = true;
+
+            let roll = Math.floor(Math.random() * 6) + 1;
+            const dice = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+            
+            for(let i=0; i<8; i++) {
+                playSound('dice');
+                document.getElementById('dice-display').innerText = dice[Math.floor(Math.random()*6)];
+                await new Promise(r => setTimeout(r, 80));
+            }
+            
+            document.getElementById('dice-display').innerText = dice[roll-1];
+            movePlayer(roll);
+        }
+
+        function movePlayer(steps) {
+            let p = state.players[state.turn];
+            let currentMove = 0;
+            const interval = setInterval(() => {
+                p.pos = (p.pos + 1) % 16;
+                playSound('move');
+                if (p.pos === 0) p.cash += 200;
+                updateTokens();
+                currentMove++;
+                if (currentMove >= steps) {
+                    clearInterval(interval);
+                    updateHUD();
+                    setTimeout(() => handleLanding(), 400);
+                }
+            }, 250);
+        }
+
+        function handleLanding() {
+            const p = state.players[state.turn];
+            const tile = TILES[p.pos];
+            const ownerIdx = state.players.findIndex(pl => pl.owned.includes(tile.id));
+
+            if (tile.type === "PROPERTY") {
+                if (ownerIdx === -1) showBuyModal(tile);
+                else if (ownerIdx !== state.turn) {
+                    playSound('wrong');
+                    p.cash -= tile.rent;
+                    state.players[ownerIdx].cash += tile.rent;
+                    setMessage(`Bé trả phí tham quan $${tile.rent} cho ${state.players[ownerIdx].name}.`);
+                    setTimeout(endTurn, 1000);
+                } else {
+                    setMessage(`Chào mừng chủ nhân về nhà!`);
+                    setTimeout(endTurn, 1000);
+                }
+            } else if (tile.type === "QUIZ") {
+                showQuizModal();
+            } else if (tile.type === "TAX") {
+                playSound('wrong');
+                p.cash -= 200;
+                setMessage("Bé bị phạt nộp thuế môi trường $200!");
+                setTimeout(endTurn, 1000);
+            } else if (tile.type === "GO_JAIL") {
+                playSound('wrong');
+                p.pos = 4;
+                updateTokens();
+                setMessage("Ôi không! Bé bị phạt nghỉ trưa rồi.");
+                setTimeout(endTurn, 1000);
+            } else {
+                setMessage("Nghỉ chân tại đây tí nào!");
+                setTimeout(endTurn, 1000);
+            }
+        }
+
+        function showBuyModal(tile) {
+            const modal = document.getElementById('action-modal');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="${tile.color} p-6 text-white text-center">
+                    <div class="text-6xl mb-2">${tile.emoji}</div>
+                    <h2 class="text-2xl font-black uppercase">${tile.name}</h2>
+                </div>
+                <div class="p-8 space-y-4 text-center">
+                    <p class="font-black text-slate-400 uppercase">Giá mua: <span class="text-blue-500">$${tile.price}</span></p>
+                    <div class="grid grid-cols-2 gap-4 pt-4">
+                        <button onclick="closeModal(); endTurn();" class="py-4 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase">Bỏ qua</button>
+                        <button onclick="buyProperty(${tile.id})" class="py-4 ${state.players[state.turn].color} text-white rounded-2xl font-black uppercase">Mua ngay</button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function showQuizModal() {
+            const modal = document.getElementById('action-modal');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="bg-purple-400 p-6 text-white text-center">
+                    <div class="text-5xl mb-2">🤖</div>
+                    <h2 class="text-xl font-black">THỬ THÁCH AI</h2>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-slate-700 font-black mb-6">Bé có muốn trồng thêm cây xanh không?</p>
+                    <button onclick="answerQuiz(true)" class="w-full py-3 mb-2 bg-emerald-400 text-white rounded-xl font-bold">CÓ! (Nhận $100)</button>
+                    <button onclick="answerQuiz(false)" class="w-full py-3 bg-rose-400 text-white rounded-xl font-bold">KHÔNG (Mất $100)</button>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function buyProperty(id) {
+            const p = state.players[state.turn];
+            const tile = TILES.find(t => t.id === id);
+            if (p.cash >= tile.price) {
+                playSound('buy');
+                p.cash -= tile.price;
+                p.owned.push(id);
+                const mark = document.getElementById(`owner-mark-${id}`);
+                mark.className = `absolute top-0.5 right-0.5 w-3 h-3 rounded-full ${p.color} border border-white`;
+                mark.classList.remove('hidden');
+                closeModal();
+                updateHUD();
+                endTurn();
+            } else {
+                playSound('wrong');
+                closeModal();
+                endTurn();
+            }
+        }
+
+        function answerQuiz(isCorrect) {
+            const p = state.players[state.turn];
+            if (isCorrect) {
+                playSound('correct');
+                p.cash += 100;
+                setMessage("Tuyệt vời! Bé nhận thưởng $100.");
+            } else {
+                playSound('wrong');
+                p.cash -= 100;
+                setMessage("Bé cần quan tâm môi trường hơn nhé!");
+            }
+            closeModal();
+            updateHUD();
+            endTurn();
+        }
+
+        function closeModal() {
+            document.getElementById('action-modal').classList.add('hidden');
+        }
+
+        function endTurn() {
+            state.turn = state.turn === 0 ? 1 : 0;
+            state.isRolling = false;
+            document.getElementById('roll-btn').disabled = false;
+            updateHUD();
+        }
+    </script>
+</body>
+</html>
